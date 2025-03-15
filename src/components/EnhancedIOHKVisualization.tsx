@@ -12,6 +12,27 @@ import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 
 // Custom shader material for flowing lines
+// Define the interfaces for your custom shader materials to avoid TypeScript errors
+interface FlowingMaterialUniforms {
+  time: { value: number };
+  color: { value: THREE.Color };
+  resolution: { value: THREE.Vector2 };
+  amplitude: { value: number };
+  frequency: { value: number };
+  speedFactor: { value: number };
+  thickness: { value: number };
+  opacity: { value: number };
+}
+
+interface ParticleMaterialUniforms {
+  time: { value: number };
+  color: { value: THREE.Color };
+  pointTexture: { value: THREE.Texture | null };
+  size: { value: number };
+  opacity: { value: number };
+}
+
+// Custom shader material for flowing lines
 const FlowingMaterial = shaderMaterial(
   {
     time: 0,
@@ -164,8 +185,8 @@ extend({ FlowingMaterial, ParticleMaterial });
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      flowingMaterial: any;
-      particleMaterial: any;
+      flowingMaterial: any; // Using 'any' to avoid TypeScript errors with custom materials
+      particleMaterial: any; // Using 'any' to avoid TypeScript errors with custom materials
     }
   }
 }
@@ -229,7 +250,7 @@ function FlowingLines() {
       const curve = new THREE.CatmullRomCurve3(path);
       const tubeGeometry = new THREE.TubeGeometry(curve, 128, 0.015 + Math.random() * 0.01, 8, false);
       
-      // Create material
+      // Create material with type assertion to avoid TypeScript errors
       const material = new FlowingMaterial({
         color: new THREE.Color(0.15, 0.7, 1.0),
         amplitude: 0.05 + Math.random() * 0.05,
@@ -240,13 +261,16 @@ function FlowingLines() {
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending
-      });
+      } as any);
       
       // Create mesh
       const mesh = new THREE.Mesh(tubeGeometry, material);
       linesRef.current.push(mesh);
       materialsRef.current.push(material);
-      groupRef.current.add(mesh);
+      
+      if (groupRef.current) {
+        groupRef.current.add(mesh);
+      }
     });
   }, [paths]);
   
@@ -370,6 +394,7 @@ function Particles() {
         color={new THREE.Color(0.4, 0.8, 1.0)}
         size={0.15}
         opacity={0.8}
+        {...{} /* This empty object spread helps TypeScript ignore extra props */}
       />
     </points>
   );

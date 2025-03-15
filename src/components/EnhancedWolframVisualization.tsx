@@ -1,9 +1,9 @@
-import React, { useRef, useMemo, useEffect, useState } from 'react';
-import { Canvas, extend, useFrame, useThree } from '@react-three/fiber';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
+import { Canvas, useFrame, extend, useThree } from '@react-three/fiber';
 import { OrbitControls, shaderMaterial } from '@react-three/drei';
+import * as THREE from 'three';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
-import * as THREE from 'three';
 
 // Custom shader for cellular automaton
 const CellularAutomatonMaterial = shaderMaterial(
@@ -321,3 +321,90 @@ function WolframParticles() {
     geometry.setAttribute('speed', new THREE.BufferAttribute(speeds, 1));
     geometry.setAttribute('offset', new THREE.BufferAttribute(offsets, 1));
   }, []);
+  
+  // Animation
+  useFrame(({ clock }) => {
+    if (!particlesRef.current || !materialRef.current) return;
+    
+    const time = clock.getElapsedTime();
+    
+    // Update material uniforms
+    materialRef.current.uniforms.time.value = time;
+    
+    // Update particle positions for flowing effect
+    const positions = particlesRef.current.geometry.attributes.position;
+    
+    for (let i = 0; i < positions.count; i++) {
+      const idx = i * 3;
+      const speed = (particlesRef.current.geometry.attributes.speed as THREE.BufferAttribute).getX(i);
+      const offset = (particlesRef.current.geometry.attributes.offset as THREE.BufferAttribute).getX(i);
+      
+      // Get the current position
+      const x = positions.getX(i);
+      const y = positions.getY(i);
+      const z = positions.getZ(i);
+      
+      // Calculate angle and radius
+      let angle = Math.atan2(z, x) + time * speed;
+      let radius = Math.sqrt(x * x + z * z) + Math.sin(time * 0.2 + offset * 10.0) * 0.1;
+      
+      // Update position with orbital motion
+      positions.setX(i, Math.cos(angle) * radius);
+      positions.setZ(i, Math.sin(angle) * radius);
+      positions.setY(i, y + Math.sin(time * 0.2 + offset * 5.0) * 0.02);
+    }
+    
+    positions.needsUpdate = true;
+  });
+  
+  return (
+    <points ref={particlesRef}>
+      <bufferGeometry />
+      <wolframParticleMaterial 
+        ref={materialRef}
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        color={new THREE.Color(0.4, 0.8, 1.0)}
+        size={0.15}
+      />
+    </points>
+  );
+}
+
+// Main component
+export default function WolframGameOfLife() {
+  return (
+    <div className="w-full h-full">
+      <Canvas
+        camera={{ position: [0, 0, 20], fov: 60 }}
+        style={{ background: 'rgb(1, 8, 22)' }} // Very dark blue, like IOHK site
+      >
+        <CellularAutomaton />
+        <WolframParticles />
+        <EffectComposer>
+          {/* Bloom effect for glow */}
+          <Bloom
+            intensity={1.0}
+            luminanceThreshold={0.2}
+            luminanceSmoothing={0.9}
+            blendFunction={BlendFunction.SCREEN}
+          />
+          {/* Vignette for edge darkening */}
+          <Vignette
+            offset={0.5}
+            darkness={0.5}
+            blendFunction={BlendFunction.NORMAL}
+          />
+        </EffectComposer>
+        <OrbitControls 
+          enableDamping 
+          dampingFactor={0.05} 
+          enableZoom={true}
+          minDistance={10}
+          maxDistance={40}
+        />
+      </Canvas>
+    </div>
+  );
+}

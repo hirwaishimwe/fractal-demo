@@ -50,10 +50,15 @@ function NetworkLines() {
         new THREE.Vector3(...line.end)
       ]);
       
+      // Use the primitive element for THREE.Line objects
       return (
-        <line key={i} geometry={lineGeometry}>
-          <lineBasicMaterial color={line.color} linewidth={2} />
-        </line>
+        <primitive
+          key={i}
+          object={new THREE.Line(
+            lineGeometry,
+            new THREE.LineBasicMaterial({ color: line.color, linewidth: 2 })
+          )}
+        />
       );
     });
     
