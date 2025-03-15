@@ -1,10 +1,10 @@
 import "./App.css";
-import TorusFractal from "./components/TorusFractal";
+import FractalGallery from "./components/FractalGallery";
 
 function App() {
   return (
     <div className="w-full h-full">
-      <TorusFractal />
+      <FractalGallery />
     </div>
   );
 }
